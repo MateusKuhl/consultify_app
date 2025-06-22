@@ -50,41 +50,44 @@ export default function Dashboard(){
   }, [])
 
 
-  async function updateState(querySnapshot){
-    const isCollectionEmpty = querySnapshot.size === 0;
+  async function updateState(querySnapshot) {
+  const isCollectionEmpty = querySnapshot.size === 0;
 
-    if(!isCollectionEmpty){
-      let lista = [];
+  if (!isCollectionEmpty) {
+    let lista = [];
 
-      querySnapshot.forEach((doc) => {
-        lista.push({
-          id: doc.id,
-          assunto: doc.data().assunto,
-          valor: new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-          }).format(doc.data().valor),
-          cliente: doc.data().cliente,
-          clienteId: doc.data().clienteId,
-          created: doc.data().created,
-          createdFormat: format(doc.data().created.toDate(), 'dd/MM/yyyy'),
-          status: doc.data().status,
-          complemento: doc.data().complemento,
-        })
-      })
+    querySnapshot.forEach((doc) => {
+      let valorNumber = 0;
+      
+      if (doc.data().valor) {
+        valorNumber = parseFloat(doc.data().valor.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+      }
 
-      const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1] // Pegando o ultimo item
+      lista.push({
+        id: doc.id,
+        assunto: doc.data().assunto,
+        valor: new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL'
+        }).format(valorNumber),
+        cliente: doc.data().cliente,
+        clienteId: doc.data().clienteId,
+        created: doc.data().created,
+        createdFormat: format(doc.data().created.toDate(), 'dd/MM/yyyy'),
+        status: doc.data().status,
+        complemento: doc.data().complemento,
+      });
+    });
 
-      setProjetos(projetos => [...projetos, ...lista])
-      setLastDocs(lastDoc);
-
-    }else{
-      setIsEmpty(true);
-    }
-
-    setLoadingMore(false);
-
+    const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+    setProjetos(projetos => [...projetos, ...lista]);
+    setLastDocs(lastDoc);
+  } else {
+    setIsEmpty(true);
   }
+
+  setLoadingMore(false);
+}
 
 
   async function handleMore(){
@@ -163,10 +166,27 @@ export default function Dashboard(){
                         <td data-label="Assunto">{item.assunto}</td>
                         <td data-label="Valor">{item.valor}</td>
                         <td data-label="Status">
-                          <span className="badge" style={{ backgroundColor: item.status === 'Aberto' ? '#d6f5bd' : '#f1d5ab', fontSize: '14px', fontWeight: 'bolder',
-                             padding: '8px', borderRadius: '20px',
-                             border: item.status === 'Aberto' ? '2px solid rgb(115, 255, 0)' : '2px solid rgb(246, 169, 53)',
-                             color: item.status === 'Aberto' ? '#0ab613' : '#c57804' }}>
+                          <span className="badge" style={{
+                            backgroundColor: 
+                              item.status === 'Aberto' ? '#d6f5bd' : 
+                              item.status === 'Progresso' ? '#f1d5ab' :
+                              item.status === 'Atendido' ? '#b8e8f9' : 
+                              '#ffd6d6',
+                            fontSize: '14px',
+                            fontWeight: 'bolder',
+                            padding: '8px',
+                            borderRadius: '20px',
+                            border: 
+                              item.status === 'Aberto' ? '2px solid #73ff00' : 
+                              item.status === 'Progresso' ? '2px solid #f6a935' :
+                              item.status === 'Atendido' ? '2px solid #35baf6' : 
+                              '2px solid #ff4d4d',
+                            color: 
+                              item.status === 'Aberto' ? '#0ab613' : 
+                              item.status === 'Progresso' ? '#c57804' :
+                              item.status === 'Atendido' ? '#0a7eb6' : 
+                              '#b60a0a'
+                          }}>
                             {item.status}
                           </span>
                         </td>

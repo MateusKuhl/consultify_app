@@ -1,112 +1,209 @@
-.sidebar{
-  width: 300px;
-  margin: 0;
-  padding: 0;
+.sidebar {
+  width: 250px;
+  height: 100vh;
   background-color: #181c2e;
   position: fixed;
-  height: 100%;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
 }
 
-.sidebar div{
-  padding-top: 30px;
+.sidebar-top {
+  padding: 20px 0;
+  text-align: center;
 }
 
-.sidebar div img {
-  width: 75px;
-  height: 75px;
-  display: block;
-  margin: auto;
+.sidebar-top img {
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
   filter: drop-shadow(2px 3px 6px #121212);
-  -webkit-filter: drop-shadow(2px 3px 6px #121212);
 }
 
-.sidebar a {
-  display: block;
-  padding: 16px;
+.bar {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin: 20px auto;
+  width: 80%;
+}
+
+.content{
+  margin-left: 250px;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
   display: flex;
-  text-decoration: none;
-  color: rgba(255,255,255, 0.7);
-  flex-direction: row;
+  flex-direction: column;
+}
+
+.itens {
+  display: flex;
+  flex-direction: column;
+  padding: 0 15px;
+}
+
+.itens a {
+  display: flex;
   align-items: center;
-  transition: ease-in-out 0.4s;
+  padding: 12px 15px;
+  margin-bottom: 5px;
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  border-radius: 5px;
+  transition: all 0.3s;
 }
 
-.sidebar a svg{
-  margin-right: 0.5rem;
-}
-
-.sidebar a:hover{
+.itens a:hover {
   background-color: #121212;
   color: #FFF;
 }
 
-.content{
-  margin-left: 300px;
-  padding: 1px 16px;
+.itens a svg {
+  margin-right: 12px;
+  min-width: 24px;
 }
 
-.bar{
-  border-top: 1px solid rgb(255, 255, 255);
-  width: 92%;
-  margin-top: 30px;
-  margin-left: 10px;
+.sidebar-bottom {
+  padding: 15px;
+  border-top: 1px solid rgba(255,255,255,0.1);
 }
 
-.logout-btn{
-  padding: 4px 20px;
-  border: 1px solid #ffffff;
+.logout-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 15px;
   background-color: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 5px;
-  font-size: 1.3em;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.logout-btn:hover {
+  background-color: rgba(255,255,255,0.1);
+}
+
+.logout-btn svg {
+  margin-right: 10px;
+}
+
+.container-center{
+  height: 100%;
+  display: flex;
   justify-content: center;
   align-items: center;
-  color: #ffffff;
-  margin-top: 460px;
-  width: 75%;
-  margin-left: 35px;
-  overflow: auto;
+  background-color: #121212;
+  padding: 0 12px;
 }
 
-.itens{
-  margin-top: -40px;
-  margin-left: 5px;
+form{
+  margin-top: 1.5rem;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
 }
 
-@media screen and (max-width: 700px){
-  .sidebar{
-    width: 100%;
-    height: auto;
-    position: relative;
-  }
-
-  div.content{
-    margin-left: 0;
-  }
-
-  .sidebar a{
-    float: left;
-  }
-
-  .sidebar div{
-    display: none;
-  }
-
-  .sidebar a svg{
-    display: none;
-  }
+form h1{
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #181c2e;
 }
 
+form button{
+  height: 35px;
+  border:0;
+  border-radius: 4px;
+  background-color: #181c2e;
+  color: #FFF;
+  font-size: 1.3rem;
+}
 
-@media screen and (max-width: 400px){
-  .sidebar a{
-    text-align: center;
-    float: none;
+@media screen and (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+    overflow: hidden;
   }
   
-  .sidebar a svg{
+  .sidebar-top img {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .itens a span,
+  .logout-btn span {
     display: none;
+  }
+  
+  .itens a {
+    justify-content: center;
+    padding: 15px 0;
+  }
+  
+  .itens a svg {
+    margin-right: 0;
+  }
+  
+  .logout-btn {
+    justify-content: center;
+    padding: 15px 0;
+  }
+  
+  .logout-btn svg {
+    margin-right: 0;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: fixed;
+    bottom: 0;
+    flex-direction: row;
+    padding: 0;
+  }
+  
+  .sidebar-top {
+    display: none;
+  }
+  
+  .sidebar-content {
+    flex-direction: row;
+    overflow-x: auto;
+    flex: 1;
+  }
+  
+  .itens {
+    flex-direction: row;
+    padding: 0;
+    flex: 1;
+  }
+  
+  .itens a {
+    flex-direction: column;
+    padding: 10px 5px;
+    font-size: 12px;
+    margin-bottom: 0;
+  }
+  
+  .itens a svg {
+    margin-right: 0;
+    margin-bottom: 5px;
+  }
+  
+  .sidebar-bottom {
+    display: none;
+  }
+  
+  .logout-btn {
+    display: none;
+  }
+  
+  .itens a:last-child {
+    margin-right: 0;
   }
 }

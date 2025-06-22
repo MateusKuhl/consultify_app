@@ -1,146 +1,167 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { FiUser, FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi'
+import { Link, useNavigate } from 'react-router-dom'
 import Header from '../../components/Header'
-import Title from '../../components/Title'
-import { validateCNPJ, formatCNPJ } from '../../helpers/CNPJMask';
-
-import { FiUser } from 'react-icons/fi'
-
 import { db } from '../../services/firebaseConnection'
-import { addDoc, collection } from 'firebase/firestore'
-
+import { collection, getDocs, doc, deleteDoc, query, where, orderBy, limit, startAfter } from 'firebase/firestore'
 import { toast } from 'react-toastify'
-
 import './customers.css'
 
+const listRef = collection(db, "customers")
+
 export default function Customers(){
-  const [nome, setNome] = useState('')
-  const [cnpj, setCnpj] = useState('')
-  const [email, setEmail] = useState('')
-  const [contato, setContato] = useState('')
-  const [endereco, setEndereco] = useState('')
+  const [clientes, setClientes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [isEmpty, setIsEmpty] = useState(false)
+  const [lastDocs, setLastDocs] = useState()
+  const navigate = useNavigate()
 
-  async function handleRegister(e){
-    e.preventDefault();
+  useEffect(() => {
+    async function loadClientes(){
+      const q = query(listRef, orderBy('nomeFantasia'), limit(5))
 
-    if(nome !== '' && cnpj !== '' && endereco !== '' && email !== '' && contato !== ''){
-        await addDoc(collection(db, "customers"), {
-          nomeFantasia: nome,
-          cnpj: cnpj,
-          email: email,
-          contato: contato,
-          endereco: endereco
-        })
-        .then(() => {
-          setNome('')
-          setCnpj('')
-          setEmail('')
-          setContato('')
-          setEndereco('')
-          toast.success("Empresa registrada!")
-        })
-        .catch((error) => {
-          console.log(error);
-          toast.error("Erro ao fazer o cadastro.")
-        })
+      const querySnapshot = await getDocs(q)
+      setClientes([])
 
-    }else{
-      toast.error("Preencha todos os campos!")
+      await updateState(querySnapshot)
+      setLoading(false)
     }
 
+    loadClientes()
+  }, [])
+
+  async function updateState(querySnapshot){
+    const isCollectionEmpty = querySnapshot.size === 0
+
+    if(!isCollectionEmpty){
+      let lista = []
+
+      querySnapshot.forEach((doc) => {
+        lista.push({
+          id: doc.id,
+          nomeFantasia: doc.data().nomeFantasia,
+          cnpj: doc.data().cnpj,
+          email: doc.data().email,
+          contato: doc.data().contato,
+          endereco: doc.data().endereco
+        })
+      })
+
+      const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1]
+      setClientes(clientes => [...clientes, ...lista])
+      setLastDocs(lastDoc)
+    } else {
+      setIsEmpty(true)
+    }
+
+    setLoadingMore(false)
   }
 
-  const handleChangeCNPJ = (e) => {
-    const rawValue = e.target.value.replace(/\D/g, '');
-    const formattedValue = formatCNPJ(e.target.value);
-    setCnpj(formattedValue);
-    setIsValid(rawValue.length < 14 || validateCNPJ(rawValue));
-  };
-  
+  async function handleMore(){
+    setLoadingMore(true)
+    const q = query(listRef, orderBy('nomeFantasia'), startAfter(lastDocs), limit(5))
+    const querySnapshot = await getDocs(q)
+    await updateState(querySnapshot)
+  }
+
+  async function handleDelete(id){
+    const projetosQuery = query(collection(db, "projetos"), where("clienteId", "==", id))
+    const projetosSnapshot = await getDocs(projetosQuery)
+    
+    if(projetosSnapshot.size > 0){
+      toast.error("Este cliente possui projetos ativos e não pode ser excluído!")
+      return
+    }
+
+    if(window.confirm("Tem certeza que deseja excluir este cliente?")){
+      await deleteDoc(doc(db, "customers", id))
+      .then(() => {
+        toast.success("Cliente excluído com sucesso!")
+        setClientes(clientes.filter(cliente => cliente.id !== id))
+      })
+      .catch(error => {
+        console.log(error)
+        toast.error("Erro ao excluir cliente")
+      })
+    }
+  }
+
+  if(loading){
+    return(
+      <div>
+        <Header/>
+        <div className="content">
+          <h1>Clientes</h1>
+          <p className='subtitle'>Gerencie todos os seus clientes.</p>
+          <div className="container dashboard">
+            <span>Buscando clientes...</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return(
     <div>
       <Header/>
-
       <div className="content">
-        <h1>Novo Cliente</h1>
-        <p className='subtitle'>Cadastre um novo cliente para seus projetos.</p>
+        <h1>Clientes</h1>
+        <p className='subtitle'>Gerencie todos os seus clientes.</p>
 
-        <div className="container">
-          <form className="form-profile" onSubmit={handleRegister}>
-              <label>Nome</label>
-              <input
-                type="text"
-                placeholder="Nome do Cliente ou Empresa"
-                value={nome}
-                onChange={(e) => setNome(e.target.value) }
-              />
+        {clientes.length === 0 ? (
+          <div className="container dashboard">
+            <span>Nenhum cliente encontrado...</span>
+            <Link to="/newCustomers" className="new" style={{ backgroundColor: '#181c2e', borderRadius: '8px', padding: '15px' }}>
+              <FiPlus color="#FFF" size={25} />
+              Novo Cliente
+            </Link>  
+          </div>
+        ) : (
+          <div className='mainTable'>
+            <Link to="/newCustomers" className="new" style={{ backgroundColor: '#181c2e', borderRadius: '8px', padding: '15px' }}>
+              <FiPlus color="#FFF" size={18} />
+              Novo Cliente
+            </Link>  
 
-              <label>CNPJ</label>
-              <input
-                type="text"
-                placeholder="00.000.000/0000-00"
-                value={cnpj}
-                onChange={handleChangeCNPJ}
-                maxLength={18}
-              />
+            <table className="mainTable">
+              <thead>
+                <tr>
+                  <th style={{ borderBottom: '1px solid #686868', borderLeft: '1px solid #686868' }}>Nome</th>
+                  <th>CNPJ</th>
+                  <th>Email</th>
+                  <th>Contato</th>
+                  <th style={{ borderRight: '1px solid #686868' }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientes.map((cliente) => (
+                  <tr key={cliente.id}>
+                    <td style={{ borderLeft: '1px solid #686868' }}>{cliente.nomeFantasia}</td>
+                    <td>{cliente.cnpj}</td>
+                    <td>{cliente.email}</td>
+                    <td>{cliente.contato}</td>
+                    <td style={{ borderRight: '1px solid #686868' }} >
+                      <Link to={`/newCustomers/${cliente.id}`} className="action edit" style={{ backgroundColor: '#f6a935' }}>
+                        <FiEdit2 size={16} />
+                      </Link>
+                      <button 
+                        className="action delete"
+                        onClick={() => handleDelete(cliente.id)}
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-              <label>Email</label>
-              <input
-              type="email"
-              placeholder="exemplo@dominio.com"
-              value={email}
-              onChange={(e) => {
-                const value = e.target.value;
-                setEmail(value);
-              }}
-              onBlur={() => {
-                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                  alert("Email inválido!");
-                }
-              }}
-            />
-
-              <label>Contato</label>
-              <input
-                type="text"
-                placeholder="(00) 00000-0000"
-                value={contato}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, ''); 
-                  let formattedValue = '';
-                  
-                  if (value.length <= 11) { 
-                    if (value.length <= 2) {
-                      formattedValue = value;
-                    } else if (value.length <= 6) {
-                      formattedValue = `(${value.slice(0, 2)}) ${value.slice(2)}`;
-                    } else if (value.length <= 10) {
-                      formattedValue = `(${value.slice(0, 2)}) ${value.slice(2, 6)}-${value.slice(6)}`;
-                    } else {
-                      formattedValue = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7, 11)}`;
-                    }
-                  }
-                  setContato(formattedValue);
-                }}
-                maxLength={15} 
-              />
-
-              <label>Endereço</label>
-              <input
-                type="text"
-                placeholder="Endereço da empresa"
-                value={endereco}
-                style={{ marginBottom: '30px' }}
-                onChange={(e) => setEndereco(e.target.value) }
-              />
-
-              <button type="submit">
-                Salvar
-              </button>
-          </form>
-        </div>
-
+            {loadingMore && <h3>Buscando mais clientes...</h3>}    
+            {!loadingMore && !isEmpty && <button className="btn-more" onClick={handleMore}>Buscar mais</button>}  
+          </div>
+        )}
       </div>
-
     </div>
   )
 }
