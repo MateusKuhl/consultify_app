@@ -14,17 +14,20 @@
 }
 
 .content{
-  padding: 50px;
-  width: 83%;
+  padding: 2em;
+  width: 100%;
+  max-width: 1600px;
+  box-sizing: border-box;
 }
 
 h1{
-  font-size: 50px;
+  font-size: 2.5em;
+  line-height: 1.2;
 }
 
 .subtitle{
-  font-size: 20px;
-  padding-top: 8px;
+  font-size: 1.25em;
+  padding-top: 0.5em;
 }
 
 .new svg{
@@ -59,7 +62,7 @@ table{
 
 table caption{
   font-size: 1.5em;
-  margin: 0.5em 0  0.75em;
+  margin: 0.5em 0 0.75em;
 }
 
 table tr{
@@ -115,42 +118,56 @@ table td .badge{
   color: #FFF;
 }
 
+@media screen and (max-width: 768px){
+  .content{
+    padding: 1em;
+  }
+  
+  h1{
+    font-size: 2em;
+  }
+  
+  .subtitle{
+    font-size: 1em;
+  }
+}
+
 @media screen and (max-width: 600px){
-    table{
-      border:0;
-    };
+  table{
+    border:0;
+  }
 
-    table caption{
-      font-size: 1.3em;
-    }
+  table caption{
+    font-size: 1.3em;
+  }
 
-    table thead{
-      border:none;
-      height: 1px;
-      margin: -1px;
-      overflow: hidden;
-      padding: 0;
-      position: absolute;
-      width: 1px;
-    }
+  table thead{
+    border:none;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
 
-    table tr{
-      border-bottom: 3px solid #DDD;
-      display: block;
-      margin-bottom: 0.60em;
-    }
+  table tr{
+    border-bottom: 3px solid #DDD;
+    display: block;
+    margin-bottom: 0.60em;
+  }
 
-    table td{
-      border-bottom: 1px solid #DDD;
-      display: block;
-      font-size: 0.8em;
-      text-align: right;
-    }
+  table td{
+    border-bottom: 1px solid #DDD;
+    display: block;
+    font-size: 0.8em;
+    text-align: right;
+  }
 
-    table td::before{
-      content: attr(data-label);
-      float: left;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
+  table td::before{
+    content: attr(data-label);
+    float: left;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
 }
