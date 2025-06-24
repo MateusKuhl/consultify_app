@@ -4,7 +4,7 @@ import { FiPlusCircle, FiSave } from 'react-icons/fi'
 import CurrencyInput from 'react-currency-input-field'
 import { AuthContext } from '../../contexts/auth'
 import { db } from '../../services/firebaseConnection'
-import { collection, getDocs, doc, addDoc, updateDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, addDoc, updateDoc, getDoc } from 'firebase/firestore'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import './new.css'
@@ -18,7 +18,7 @@ export default function New(){
 
   const [customers, setCustomers] = useState([])
   const [loadCustomer, setLoadCustomer] = useState(true)
-  const [customerSelected, setCustomerSelected] = useState(0)
+  const [customerSelected, setCustomerSelected] = useState('')
   const [complemento, setComplemento] = useState('')
   const [assunto, setAssunto] = useState('Consultoria')
   const [valor, setValor] = useState('')
@@ -27,85 +27,122 @@ export default function New(){
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function loadCustomers(){
+    async function loadData() {
       try {
-        const querySnapshot = await getDocs(listRef)
-        const lista = querySnapshot.docs.map(doc => ({
+        const customersQuery = await getDocs(listRef)
+        const customersList = customersQuery.docs.map(doc => ({
           id: doc.id,
           nomeFantasia: doc.data().nomeFantasia
         }))
         
-        setCustomers(lista.length ? lista : [{ id: '1', nomeFantasia: 'FREELA' }])
+        const finalCustomers = customersList.length ? 
+          customersList : 
+          [{ id: '1', nomeFantasia: 'FREELA' }]
         
-        if(id) await loadId(lista)
+        setCustomers(finalCustomers)
         
-        setLoadCustomer(false)
+        if(id) {
+          await loadProjectData(id, finalCustomers)
+        } else {
+          setCustomerSelected(finalCustomers[0]?.id || '')
+        }
+        
       } catch(error) {
-        console.error("Erro ao buscar clientes:", error)
+        console.error("Erro ao carregar dados:", error)
+        toast.error("Erro ao carregar dados")
         setCustomers([{ id: '1', nomeFantasia: 'FREELA' }])
+      } finally {
         setLoadCustomer(false)
+        setLoading(false)
       }
-      setLoading(false)
     }
 
-    loadCustomers()
+    loadData()
   }, [id])
 
-  async function loadId(lista){
+  async function loadProjectData(projectId, customersList) {
     try {
-      const docRef = doc(db, "projetos", id)
+      const docRef = doc(db, "projetos", projectId)
       const docSnap = await getDoc(docRef)
       
-      if(docSnap.exists()){
+      if(docSnap.exists()) {
         const data = docSnap.data()
-        setAssunto(data.assunto)
-        setValor(data.valor)
-        setStatus(data.status)
-        setComplemento(data.complemento)
         
-        const index = lista.findIndex(item => item.id === data.clienteId)
-        setCustomerSelected(index)
+        const customerIndex = customersList.findIndex(
+          item => item.id === data.clienteId
+        )
+        
+        const selectedCustomerId = customerIndex >= 0 ? 
+          customersList[customerIndex].id : 
+          customersList[0]?.id || ''
+        
+        setAssunto(data.assunto || 'Consultoria')
+        setValor(formatCurrencyForInput(data.valor))
+        setStatus(data.status || 'Aberto')
+        setComplemento(data.complemento || '')
+        setCustomerSelected(selectedCustomerId)
         setIdCustomer(true)
+      } else {
+        toast.error("Projeto não encontrado")
+        navigate('/dashboard')
       }
     } catch(error) {
       console.error("Erro ao carregar projeto:", error)
-      setIdCustomer(false)
+      toast.error("Erro ao carregar projeto")
+      navigate('/dashboard')
     }
   }
 
-  function handleOptionChange(e){
+  function formatCurrencyForInput(value) {
+    if (!value) return ''
+    
+    const numericValue = String(value).replace(/[^\d,.-]/g, '')
+    return numericValue
+  }
+
+  function handleOptionChange(e) {
     setStatus(e.target.value)
   }
 
-  function handleChangeSelect(e){
+  function handleChangeSelect(e) {
     setAssunto(e.target.value)
   }
 
-  function handleChangeCustomer(e){
+  function handleChangeCustomer(e) {
     setCustomerSelected(e.target.value)
   }
 
-  async function handleRegister(e){
-    e.preventDefault()
+  async function handleRegister(e) {
+  e.preventDefault()
 
-    if(!customers[customerSelected]?.id || !assunto || !valor || !status){
-      toast.error("Preencha todos os campos obrigatórios!")
+  if(!customerSelected || !assunto || !valor || !status) {
+    toast.error("Preencha todos os campos obrigatórios!")
+    return
+  }
+
+  const selectedCustomer = customers.find(c => c.id === customerSelected)
+  
+    if (!selectedCustomer) {
+      toast.error("Cliente inválido selecionado")
       return
     }
 
     const projectData = {
-      cliente: customers[customerSelected].nomeFantasia,
-      clienteId: customers[customerSelected].id,
+      cliente: selectedCustomer.nomeFantasia,
+      clienteId: selectedCustomer.id,
       assunto: assunto,
       valor: valor,
       complemento: complemento,
       status: status,
-      userId: user.uid,
-      created: idCustomer ? undefined : new Date()
+      userId: user.uid
+    }
+
+    if(!idCustomer) {
+      projectData.created = new Date()
     }
 
     try {
-      if(idCustomer){
+      if(idCustomer) {
         await updateDoc(doc(db, "projetos", id), projectData)
         toast.success("Projeto atualizado com sucesso!")
       } else {
@@ -119,7 +156,7 @@ export default function New(){
     }
   }
 
-  if(loading){
+  if(loading) {
     return (
       <div>
         <Header/>
@@ -145,9 +182,15 @@ export default function New(){
               {loadCustomer ? (
                 <input type="text" disabled value="Carregando..." />
               ) : (
-                <select value={customerSelected} onChange={handleChangeCustomer}>
-                  {customers.map((item, index) => (
-                    <option key={index} value={index}>{item.nomeFantasia}</option>
+                <select 
+                  value={customerSelected} 
+                  onChange={handleChangeCustomer}
+                  required
+                >
+                  {customers.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.nomeFantasia}
+                    </option>
                   ))}
                 </select>
               )}
@@ -155,7 +198,11 @@ export default function New(){
 
             <div className="form-group">
               <label>Assunto*</label>
-              <select value={assunto} onChange={handleChangeSelect}>
+              <select 
+                value={assunto} 
+                onChange={handleChangeSelect}
+                required
+              >
                 <option value="Consultoria">Consultoria</option>
                 <option value="Projeto">Projeto</option>
                 <option value="Outros">Outros</option>
@@ -173,6 +220,7 @@ export default function New(){
                 groupSeparator="."
                 prefix="R$ "
                 placeholder="R$0,00"
+                required
               />
             </div>
 

@@ -89,58 +89,6 @@ export default function Reports() {
   }
 
   function calculateTotals(paymentsList) {
-  const totals = {
-    income: 0,
-    expense: 0,
-    profit: 0,
-    projects: 0,
-    activeClients: 0,
-    inactiveClients: 0
-  };
-
-  const activeClientIds = new Set();
-  const allClientIds = new Set(clients.map(client => client.id));
-
-  paymentsList.forEach(payment => {
-    let amount = 0;
-    
-    if (payment.amount) {
-      if (typeof payment.amount === 'string') {
-        amount = parseFloat(payment.amount.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-      } else {
-        amount = parseFloat(payment.amount) || 0;
-      }
-    }
-
-    if(payment.type === 'receita') {
-      totals.income += amount;
-    } else {
-      totals.expense += amount;
-    }
-
-    if(payment.clientId) {
-      activeClientIds.add(payment.clientId);
-    }
-  });
-
-    totals.profit = totals.income - totals.expense;
-    totals.activeClients = activeClientIds.size;
-    totals.inactiveClients = clients.length - activeClientIds.size;
-
-    return totals;
-    }
-
-  function getClientName(clientId) {
-    const client = clients.find(c => c.id === clientId);
-    return client ? client.nomeFantasia : 'N/A';
-  }
-
-  function getProjectName(projectId) {
-    const project = projects.find(p => p.id === projectId);
-    return project ? project.assunto : 'N/A';
-  }
-
-  function calculateTotals(paymentsList) {
     const totals = {
       income: 0,
       expense: 0,
@@ -151,25 +99,55 @@ export default function Reports() {
     };
 
     const activeClientIds = new Set();
-    const allClientIds = new Set(clients.map(client => client.id));
+    
+    projects.forEach(project => {
+      if (project.status === 'Aberto' || project.status === 'Progresso') {
+        activeClientIds.add(project.clienteId);
+      }
+    });
 
     paymentsList.forEach(payment => {
-      if(payment.type === 'receita') {
-        totals.income += parseFloat(payment.amount);
-      } else {
-        totals.expense += parseFloat(payment.amount);
-      }
-
-      if(payment.clientId) {
+      if (payment.clientId) {
         activeClientIds.add(payment.clientId);
       }
     });
 
+    paymentsList.forEach(payment => {
+      let amount = 0;
+      
+      if (payment.amount) {
+        if (typeof payment.amount === 'string') {
+          amount = parseFloat(payment.amount.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+        } else {
+          amount = parseFloat(payment.amount) || 0;
+        }
+      }
+
+      if(payment.type === 'receita') {
+        totals.income += amount;
+      } else {
+        totals.expense += amount;
+      }
+    });
+
     totals.profit = totals.income - totals.expense;
+    totals.projects = projects.filter(p => 
+      p.status === 'Aberto' || p.status === 'Progresso'
+    ).length;
     totals.activeClients = activeClientIds.size;
     totals.inactiveClients = clients.length - activeClientIds.size;
 
     return totals;
+  }
+
+  function getClientName(clientId) {
+    const client = clients.find(c => c.id === clientId);
+    return client ? client.nomeFantasia : 'N/A';
+  }
+
+  function getProjectName(projectId) {
+    const project = projects.find(p => p.id === projectId);
+    return project ? project.assunto : 'N/A';
   }
 
   const { filteredPayments, filteredProjects } = filterData();
@@ -260,8 +238,8 @@ export default function Reports() {
               </div>
               
               <div className="summary-card">
-                <h3>Projetos</h3>
-                <span className="value">{filteredProjects.length}</span>
+                <h3>Projetos Ativos</h3>
+                <span className="value">{totals.projects}</span>
               </div>
               
               <div className="summary-card">
@@ -315,7 +293,7 @@ export default function Reports() {
             </div>
             
             <div className="table-container">
-              <h2>Projetos</h2>
+              <h2>Projetos Ativos</h2>
               <table>
                 <thead>
                   <tr>
@@ -327,55 +305,56 @@ export default function Reports() {
                   </tr>
                 </thead>
                 <tbody>
-                    {filteredProjects.map(project => {
-                        let valor = 0;
-                        
-                        // Validação do valor do projeto
-                        if (project.valor) {
+                  {filteredProjects
+                    .filter(project => project.status === 'Aberto' || project.status === 'Progresso')
+                    .map(project => {
+                      let valor = 0;
+                      
+                      if (project.valor) {
                         if (typeof project.valor === 'string') {
-                            valor = parseFloat(project.valor.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+                          valor = parseFloat(project.valor.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
                         } else {
-                            valor = parseFloat(project.valor) || 0;
+                          valor = parseFloat(project.valor) || 0;
                         }
-                        }
+                      }
 
-                        return (
+                      return (
                         <tr key={project.id}>
-                            <td>{getClientName(project.clienteId)}</td>
-                            <td>{project.assunto}</td>
-                            <td>
+                          <td>{getClientName(project.clienteId)}</td>
+                          <td>{project.assunto}</td>
+                          <td>
                             {valor.toLocaleString('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL'
+                              style: 'currency',
+                              currency: 'BRL'
                             })}
-                            </td>
-                            <td>
+                          </td>
+                          <td>
                             <span className="badge" style={{ 
-                                borderRadius: '20px',
-                                backgroundColor: 
+                              borderRadius: '20px',
+                              backgroundColor: 
                                 project.status === 'Aberto' ? '#d6f5bd' : 
-                                project.status === 'Em progresso' ? '#f1d5ab' :
+                                project.status === 'Progresso' ? '#f1d5ab' :
                                 project.status === 'Atendido' ? '#b8e8f9' : 
                                 '#ffd6d6',
-                                border: 
+                              border: 
                                 project.status === 'Aberto' ? '2px solid #73ff00' : 
-                                project.status === 'Em progresso' ? '2px solid #f6a935' :
+                                project.status === 'Progresso' ? '2px solid #f6a935' :
                                 project.status === 'Atendido' ? '2px solid #35baf6' : 
                                 '2px solid #ff4d4d',
-                                color: 
+                              color: 
                                 project.status === 'Aberto' ? '#0ab613' : 
-                                project.status === 'Em progresso' ? '#c57804' :
+                                project.status === 'Progresso' ? '#c57804' :
                                 project.status === 'Atendido' ? '#0a7eb6' : 
                                 '#b60a0a'
                             }}>
-                                {project.status}
+                              {project.status}
                             </span>
-                            </td>
-                            <td>{format(new Date(project.created.toDate()), 'dd/MM/yyyy')}</td>
+                          </td>
+                          <td>{project.created?.toDate ? format(new Date(project.created.toDate()), 'dd/MM/yyyy') : 'N/A'}</td>
                         </tr>
-                        )
+                      )
                     })}
-                    </tbody>
+                </tbody>
               </table>
             </div>
           </div>

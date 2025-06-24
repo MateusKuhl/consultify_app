@@ -7,6 +7,7 @@ import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from 'firebase
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { AuthContext } from '../../contexts/auth';
 import { toast } from 'react-toastify';
+import CurrencyInput from 'react-currency-input-field';
 import './payment.css';
 
 export default function Payments() {
@@ -121,9 +122,14 @@ export default function Payments() {
       return;
     }
     
+    // Converte o valor formatado para número
+    const numericAmount = typeof amount === 'string' 
+      ? parseFloat(amount.replace(/[^\d,-]/g, '').replace(',', '.'))
+      : amount;
+    
     const paymentData = {
       type,
-      amount: parseFloat(amount),
+      amount: numericAmount,
       description,
       frequency,
       date,
@@ -222,13 +228,17 @@ export default function Payments() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Valor (R$)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="0,00"
+                  <CurrencyInput
+                    name="amount"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onValueChange={(value) => setAmount(value)}
+                    intlConfig={{ locale: 'pt-BR', currency: 'BRL' }}
+                    decimalSeparator=","
+                    groupSeparator="."
+                    prefix="R$ "
+                    placeholder="R$0,00"
+                    decimalsLimit={2}
+                    required
                   />
                 </div>
                 
@@ -398,7 +408,7 @@ export default function Payments() {
                         <td>{format(parseISO(payment.date), 'dd/MM/yyyy')}</td>
                         <td>{payment.description}</td>
                         <td className={payment.type === 'receita' ? 'positive' : 'negative'}>
-                          {payment.amount.toLocaleString('pt-BR', {
+                          {parseFloat(payment.amount).toLocaleString('pt-BR', {
                             style: 'currency',
                             currency: 'BRL'
                           })}
