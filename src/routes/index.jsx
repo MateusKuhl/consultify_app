@@ -6,23 +6,32 @@ import Dashboard from '../pages/Dashboard'
 import Profile from '../pages/Profile'
 import Customers from '../pages/Customers'
 import New from '../pages/New'
-import Payments from '../pages/Payments/payments'
+import Payments from '../pages/Payments';
+import Reports from '../pages/Reports'
+import NewCustomers from '../pages/NewCustomers'
 
 import Private from './Private'
+import Public from './Public'
 
 function RoutesApp(){
   return(
     <Routes>
-      <Route path="/" element={ <SignIn/> } />
-      <Route path="/register" element={ <SignUp/> } />
+      <Route path="/" element={ <Public><SignIn/></Public> } />
+      <Route path="/register" element={<Public><SignUp/></Public> } />
 
       <Route path="/dashboard" element={ <Private><Dashboard/></Private> } />
 
       <Route path="/payments" element={ <Private><Payments/></Private> } />
+
+      <Route path="/reports" element={ <Private><Reports/></Private> } />
       
       <Route path="/profile" element={ <Private><Profile/></Private> } />
 
       <Route path="/customers" element={<Private><Customers/></Private>} />
+
+      <Route path="/newCustomers" element={<Private><NewCustomers/></Private>} />
+
+      <Route path="/newCustomers/:id" element={<Private><NewCustomers/></Private>} />
       
       <Route path="/new" element={<Private><New/></Private>} />
 

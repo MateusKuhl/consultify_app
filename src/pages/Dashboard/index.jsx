@@ -3,7 +3,7 @@ import {AuthContext} from '../../contexts/auth'
 
 import Header from '../../components/Header'
 import Title from '../../components/Title'
-import { FiPlus, FiMessageSquare, FiSearch, FiEdit2 } from 'react-icons/fi'
+import { FiPlus, FiSearch, FiEdit2 } from 'react-icons/fi'
 
 import { Link } from 'react-router-dom'
 import { collection, getDocs, orderBy, limit, startAfter, query} from 'firebase/firestore'
@@ -50,41 +50,44 @@ export default function Dashboard(){
   }, [])
 
 
-  async function updateState(querySnapshot){
-    const isCollectionEmpty = querySnapshot.size === 0;
+  async function updateState(querySnapshot) {
+  const isCollectionEmpty = querySnapshot.size === 0;
 
-    if(!isCollectionEmpty){
-      let lista = [];
+  if (!isCollectionEmpty) {
+    let lista = [];
 
-      querySnapshot.forEach((doc) => {
-        lista.push({
-          id: doc.id,
-          assunto: doc.data().assunto,
-          valor: new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-          }).format(doc.data().valor),
-          cliente: doc.data().cliente,
-          clienteId: doc.data().clienteId,
-          created: doc.data().created,
-          createdFormat: format(doc.data().created.toDate(), 'dd/MM/yyyy'),
-          status: doc.data().status,
-          complemento: doc.data().complemento,
-        })
-      })
+    querySnapshot.forEach((doc) => {
+      let valorNumber = 0;
+      
+      if (doc.data().valor) {
+        valorNumber = parseFloat(doc.data().valor.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+      }
 
-      const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1] // Pegando o ultimo item
+      lista.push({
+        id: doc.id,
+        assunto: doc.data().assunto,
+        valor: new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL'
+        }).format(valorNumber),
+        cliente: doc.data().cliente,
+        clienteId: doc.data().clienteId,
+        created: doc.data().created,
+        createdFormat: format(doc.data().created.toDate(), 'dd/MM/yyyy'),
+        status: doc.data().status,
+        complemento: doc.data().complemento,
+      });
+    });
 
-      setProjetos(projetos => [...projetos, ...lista])
-      setLastDocs(lastDoc);
-
-    }else{
-      setIsEmpty(true);
-    }
-
-    setLoadingMore(false);
-
+    const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+    setProjetos(projetos => [...projetos, ...lista]);
+    setLastDocs(lastDoc);
+  } else {
+    setIsEmpty(true);
   }
+
+  setLoadingMore(false);
+}
 
 
   async function handleMore(){
@@ -110,7 +113,6 @@ export default function Dashboard(){
 
         <div className="content">
           <Title name="Consultify">
-            <FiMessageSquare size={25} />
           </Title>
 
           <div className="container dashboard">
@@ -126,51 +128,70 @@ export default function Dashboard(){
       <Header/>
 
       <div className="content">
-        <Title name="Consultify">
-          <FiMessageSquare size={25} />
-        </Title>
+        <h1>Projetos</h1>
+        <p className='subtitle'>Gerencie todos os seus projetos em um só lugar.</p>
 
         <>
           {projetos.length === 0 ? (
             <div className="container dashboard">
               <span>Nenhum projeto encontrado...</span>
-              <Link to="/new" className="new">
+              <Link to="/new" className="new" style={{ backgroundColor: '#181c2e', borderRadius: '8px', padding: '15px' }}>
                 <FiPlus color="#FFF" size={25} />
                 Novo Projeto
               </Link>  
             </div>
           ) : (
-            <>
-              <Link to="/new" className="new">
-                <FiPlus color="#FFF" size={25} />
+            <div className='mainTable'>
+              <Link to="/new" className="new" style={{ backgroundColor: '#181c2e', borderRadius: '8px', padding: '15px' }}>
+                <FiPlus color="#FFF" size={18} />
                 Novo Projeto
               </Link>  
 
-              <table>
+              <table className="mainTable">
                 <thead>
                   <tr>
-                    <th scope="col">Cliente</th>
+                    <th scope="col" style={{ borderLeft: '1px solid #686868' }}>Cliente</th>
                     <th scope="col">Assunto</th>
                     <th scope="col">Valor</th>
                     <th scope="col">Status</th>
                     <th scope="col">Cadastrado em</th>
-                    <th scope="col">Opções</th>
+                    <th scope="col" style={{ borderRight: '1px solid #686868' }}>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {projetos.map((item, index) => {
                     return(
                       <tr key={index}>
-                        <td data-label="Cliente">{item.cliente}</td>
+                        <td data-label="Cliente" style={{ borderLeft: '1px solid #686868' }}>{item.cliente}</td>
                         <td data-label="Assunto">{item.assunto}</td>
                         <td data-label="Valor">{item.valor}</td>
                         <td data-label="Status">
-                          <span className="badge" style={{ backgroundColor: item.status === 'Aberto' ? '#5cb85c' : '#999' }}>
+                          <span className="badge" style={{
+                            backgroundColor: 
+                              item.status === 'Aberto' ? '#d6f5bd' : 
+                              item.status === 'Progresso' ? '#f1d5ab' :
+                              item.status === 'Atendido' ? '#b8e8f9' : 
+                              '#ffd6d6',
+                            fontSize: '14px',
+                            fontWeight: 'bolder',
+                            padding: '8px',
+                            borderRadius: '20px',
+                            border: 
+                              item.status === 'Aberto' ? '2px solid #73ff00' : 
+                              item.status === 'Progresso' ? '2px solid #f6a935' :
+                              item.status === 'Atendido' ? '2px solid #35baf6' : 
+                              '2px solid #ff4d4d',
+                            color: 
+                              item.status === 'Aberto' ? '#0ab613' : 
+                              item.status === 'Progresso' ? '#c57804' :
+                              item.status === 'Atendido' ? '#0a7eb6' : 
+                              '#b60a0a'
+                          }}>
                             {item.status}
                           </span>
                         </td>
                         <td data-label="Cadastrado">{item.createdFormat}</td>
-                        <td data-label="#">
+                        <td data-label="#" style={{ borderRight: '1px solid #686868' }}>
                           <button className="action" style={{ backgroundColor: '#3583f6' }} onClick={ () => toggleModal(item)}>
                             <FiSearch color='#FFF' size={17}/>
                           </button>
@@ -187,7 +208,7 @@ export default function Dashboard(){
 
               {loadingMore && <h3>Buscando mais projetos...</h3>}    
               {!loadingMore && !isEmpty && <button className="btn-more" onClick={handleMore}>Buscar mais</button>  }  
-            </>
+            </div>
           )}
         </>
 
